@@ -46,7 +46,6 @@ const SearchForm: React.FC<Props> = ({ setMarkers }) => {
     localStorage.setItem("kamps", JSON.stringify(newKamps));
 
     setDataForm({ lat: 0, lng: 0, key: "", name: "", desc: "", price: 0 });
-    window.alert("Saved successfully");
   };
 
   return (
