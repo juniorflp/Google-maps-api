@@ -33,7 +33,7 @@ const MapComponent: React.FC = () => {
     setSelectedMarker(null);
   };
 
-  useEffect(() => {}, [markers]);
+  useEffect(() => {}, [markers, position]);
 
   useEffect(() => {
     const storedKamps = localStorage.getItem("kamps");
