@@ -25,6 +25,7 @@ const MapComponent: React.FC = () => {
   const [position, setPosition] = useState(INITIAL_POSITION);
   const [markers, setMarkers] = useState<Kamp[]>(kamps);
 
+  let map: google.maps.Map;
   const handleMarkerOpen = (key: string) => {
     setSelectedMarker(key);
   };
@@ -33,7 +34,9 @@ const MapComponent: React.FC = () => {
     setSelectedMarker(null);
   };
 
-  useEffect(() => {}, [markers, position]);
+  useEffect(() => {
+    if (position) map?.setCenter(position);
+  }, [markers, position]);
 
   useEffect(() => {
     const storedKamps = localStorage.getItem("kamps");
@@ -47,16 +50,7 @@ const MapComponent: React.FC = () => {
         lng: position.coords.longitude,
       });
     });
-
-    const watchId = navigator.geolocation.watchPosition((position) => {
-      setPosition({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
-    });
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [kamps]);
 
   return (
     <section className="relative flex flex-col w-full pb-10  bg-gray-900">
