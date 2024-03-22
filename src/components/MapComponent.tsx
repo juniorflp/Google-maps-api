@@ -16,7 +16,7 @@ const MapComponent: React.FC = () => {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const MAP_ID = process.env.NEXT_PUBLIC_MAP_ID;
   const INITIAL_POSITION = useMemo(
-    () => ({ lat: -29.3227, lng: -52.0323 }),
+    () => ({ lat: -27.6863623, lng: -48.7768581 }),
     []
   );
   const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
@@ -34,8 +34,17 @@ const MapComponent: React.FC = () => {
     setSelectedMarker(null);
   };
 
+  async function initialPosition() {
+    await navigator.geolocation.getCurrentPosition((position) => {
+      setPosition({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+    });
+  }
+
   useEffect(() => {
-    if (position) map?.setCenter(position);
+    console.log(position);
   }, [markers, position]);
 
   useEffect(() => {
@@ -43,14 +52,8 @@ const MapComponent: React.FC = () => {
     if (storedKamps) {
       setMarkers([...kamps, ...JSON.parse(storedKamps)]);
     }
-
-    navigator.geolocation.getCurrentPosition((position) => {
-      setPosition({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
-    });
-  }, [kamps]);
+    initialPosition();
+  }, []);
 
   return (
     <section className="relative flex flex-col w-full pb-10  bg-gray-900">

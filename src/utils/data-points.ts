@@ -18,7 +18,7 @@ const formatted: Kamp[] = kamps.map(([name, lat, lng]) => ({
   lat,
   lng,
   key: JSON.stringify({ name, lat, lng }),
-  desc: "test",
+  desc: "sdad",
   price: 120,
 }));
 
