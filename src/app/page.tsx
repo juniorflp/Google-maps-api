@@ -1,4 +1,5 @@
-// ... outros imports
+"use client";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import dynamic from "next/dynamic";
 
 const DynamicMapComponent = dynamic(
@@ -11,7 +12,9 @@ const DynamicMapComponent = dynamic(
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center ">
-      <DynamicMapComponent />
+      <APIProvider apiKey="AIzaSyCo_ZVPsIRL4EzvZH4puXKAeFS5Pu2T7mk">
+        <DynamicMapComponent />
+      </APIProvider>
     </main>
   );
 }

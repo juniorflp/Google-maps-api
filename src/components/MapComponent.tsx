@@ -1,22 +1,24 @@
 "use client";
 import {
-  APIProvider,
   AdvancedMarker,
   ControlPosition,
   InfoWindow,
   Map,
+  useApiIsLoaded,
+  useMap,
 } from "@vis.gl/react-google-maps";
 import React, { useEffect, useMemo, useState } from "react";
 import kamps, { Kamp } from "../utils/data-points";
+import CardKamp from "./CardKamp";
 import { CustomMapControl } from "./MapControl";
 import MapHandler from "./MapHandler";
 import SearchForm from "./SearchForm";
 
 const MapComponent: React.FC = () => {
-  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const API_KEY = "AIzaSyCo_ZVPsIRL4EzvZH4puXKAeFS5Pu2T7mk";
   const MAP_ID = process.env.NEXT_PUBLIC_MAP_ID;
   const INITIAL_POSITION = useMemo(
-    () => ({ lat: -27.6863623, lng: -48.7768581 }),
+    () => ({ lat: -25.6863655, lng: -48.7768533 }),
     []
   );
   const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
@@ -25,7 +27,9 @@ const MapComponent: React.FC = () => {
   const [position, setPosition] = useState(INITIAL_POSITION);
   const [markers, setMarkers] = useState<Kamp[]>(kamps);
 
-  let map: google.maps.Map;
+  const map = useMap();
+  const load = useApiIsLoaded();
+
   const handleMarkerOpen = (key: string) => {
     setSelectedMarker(key);
   };
@@ -35,17 +39,19 @@ const MapComponent: React.FC = () => {
   };
 
   async function initialPosition() {
-    await navigator.geolocation.getCurrentPosition((position) => {
-      setPosition({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
-    });
+    await navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log("Got geolocation successfully:", position);
+        setPosition({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.error("Error getting geolocation:", error);
+      }
+    );
   }
-
-  useEffect(() => {
-    console.log(position);
-  }, [markers, position]);
 
   useEffect(() => {
     const storedKamps = localStorage.getItem("kamps");
@@ -55,26 +61,36 @@ const MapComponent: React.FC = () => {
     initialPosition();
   }, []);
 
+  if (!load) {
+    return <div>Loading...</div>;
+  }
+  console.log(map);
   return (
     <section className="relative flex flex-col w-full pb-10  bg-gray-900">
       <p className="mx-auto text-white text-2xl my-10 ">Kamps for Kids POC</p>
-      <APIProvider apiKey={API_KEY!}>
+      <div className="flex ">
         <div className="w-full relative flex flex-col justify-center items-center gap-10">
-          <div className="w-[90vw] h-[60vh] mx-auto ">
+          <div className="w-full h-[60vh] mx-auto  ">
             {position && (
               <Map
+                id="my-map"
                 defaultZoom={9}
-                defaultCenter={position}
                 mapId={MAP_ID}
-                streetViewControl={false}
+                defaultCenter={position}
                 clickableIcons={false}
               >
+                <div className="flex flex-col w-[40%] absolute right-0 gap-6 bg-slate-50 p-5 h-[60vh] overflow-auto shadow-2xl">
+                  {markers.map((marker) => (
+                    <CardKamp key={marker.key} campData={marker} />
+                  ))}
+                </div>
                 <Markers
                   points={markers}
                   onOpen={handleMarkerOpen}
                   onClose={handleMarkerClose}
                   isOpen={(key) => selectedMarker === key}
                 />
+                <MapHandler place={selectedPlace} />
               </Map>
             )}
           </div>
@@ -84,11 +100,9 @@ const MapComponent: React.FC = () => {
             onPlaceSelect={setSelectedPlace}
           />
 
-          <MapHandler place={selectedPlace} />
-
           <SearchForm setMarkers={setMarkers} />
         </div>
-      </APIProvider>
+      </div>
     </section>
   );
 };
@@ -101,13 +115,15 @@ type Props = {
 };
 
 const Markers = ({ points, isOpen, onOpen, onClose }: Props) => {
+  const map = useMap();
+
   return (
     <>
       {points.map((point) => (
         <div
           key={point.key}
           onMouseEnter={() => onOpen(point.key)}
-          onClick={() => console.log(point)}
+          onMouseOut={onClose}
         >
           {isOpen(point.key) && (
             <InfoWindow
