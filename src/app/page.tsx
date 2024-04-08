@@ -10,9 +10,11 @@ const DynamicMapComponent = dynamic(
 );
 
 export default function Home() {
+  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
   return (
     <main className="flex min-h-screen flex-col items-center ">
-      <APIProvider apiKey="AIzaSyCo_ZVPsIRL4EzvZH4puXKAeFS5Pu2T7mk">
+      <APIProvider apiKey={API_KEY!}>
         <DynamicMapComponent />
       </APIProvider>
     </main>

@@ -15,7 +15,6 @@ import MapHandler from "./MapHandler";
 import SearchForm from "./SearchForm";
 
 const MapComponent: React.FC = () => {
-  const API_KEY = "AIzaSyCo_ZVPsIRL4EzvZH4puXKAeFS5Pu2T7mk";
   const MAP_ID = process.env.NEXT_PUBLIC_MAP_ID;
   const INITIAL_POSITION = useMemo(
     () => ({ lat: -25.6863655, lng: -48.7768533 }),
