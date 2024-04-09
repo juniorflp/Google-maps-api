@@ -1,7 +1,6 @@
 "use client";
 import {
   AdvancedMarker,
-  ControlPosition,
   InfoWindow,
   Map,
   useApiIsLoaded,
@@ -10,8 +9,7 @@ import {
 import React, { useEffect, useMemo, useState } from "react";
 import kamps, { Kamp } from "../utils/data-points";
 import CardKamp from "./CardKamp";
-import { CustomMapControl } from "./MapControl";
-import MapHandler from "./MapHandler";
+import GetMap from "./GetMap";
 import SearchForm from "./SearchForm";
 
 const MapComponent: React.FC = () => {
@@ -21,12 +19,13 @@ const MapComponent: React.FC = () => {
     []
   );
   const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
-  const [selectedPlace, setSelectedPlace] =
-    useState<google.maps.places.PlaceResult | null>(null);
+
   const [position, setPosition] = useState(INITIAL_POSITION);
   const [markers, setMarkers] = useState<Kamp[]>(kamps);
+  const [visibleCards, setVisibleCards] = useState<Kamp[]>(kamps);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [viewAll, setViewAll] = useState(false);
 
-  const map = useMap();
   const load = useApiIsLoaded();
 
   const handleMarkerOpen = (key: string) => {
@@ -38,6 +37,7 @@ const MapComponent: React.FC = () => {
   };
 
   async function initialPosition() {
+    // Get the current position
     await navigator.geolocation.getCurrentPosition(
       (position) => {
         console.log("Got geolocation successfully:", position);
@@ -52,7 +52,31 @@ const MapComponent: React.FC = () => {
     );
   }
 
+  const handleBoundsChanged = () => {
+    if (map) {
+      const bounds = map.getBounds();
+      // filter all markers that are visible
+      const visibleMarkers = markers.filter((marker) => {
+        const markerPosition = new google.maps.LatLng(marker.lat, marker.lng);
+        return bounds?.contains(markerPosition);
+      });
+
+      setVisibleCards(visibleMarkers);
+    }
+  };
+
   useEffect(() => {
+    if (map) {
+      map.panTo(position);
+      map.addListener("bounds_changed", handleBoundsChanged);
+      return () => {
+        google.maps.event.clearListeners(map, "bounds_changed");
+      };
+    }
+  }, [position, map]);
+
+  useEffect(() => {
+    // Save kamps to local storage
     const storedKamps = localStorage.getItem("kamps");
     if (storedKamps) {
       setMarkers([...kamps, ...JSON.parse(storedKamps)]);
@@ -63,12 +87,14 @@ const MapComponent: React.FC = () => {
   if (!load) {
     return <div>Loading...</div>;
   }
-  console.log(map);
+
+  const cardsToPlay = viewAll ? markers : visibleCards;
+
   return (
     <section className="relative flex flex-col w-full pb-10  bg-gray-900">
       <p className="mx-auto text-white text-2xl my-10 ">Kamps for Kids POC</p>
       <div className="flex ">
-        <div className="w-full relative flex flex-col justify-center items-center gap-10">
+        <div className="w-[60%] relative flex flex-col justify-center items-center gap-10">
           <div className="w-full h-[60vh] mx-auto  ">
             {position && (
               <Map
@@ -77,29 +103,43 @@ const MapComponent: React.FC = () => {
                 mapId={MAP_ID}
                 defaultCenter={position}
                 clickableIcons={false}
+                streetViewControl={false}
               >
-                <div className="flex flex-col w-[40%] absolute right-0 gap-6 bg-slate-50 p-5 h-[60vh] overflow-auto shadow-2xl">
-                  {markers.map((marker) => (
-                    <CardKamp key={marker.key} campData={marker} />
-                  ))}
-                </div>
+                <GetMap getMap={(map) => setMap(map)} />
+
                 <Markers
                   points={markers}
                   onOpen={handleMarkerOpen}
                   onClose={handleMarkerClose}
                   isOpen={(key) => selectedMarker === key}
                 />
-                <MapHandler place={selectedPlace} />
+                {/* <CustomMapControl
+                  controlPosition={ControlPosition.TOP}
+                  map={map}
+                /> */}
               </Map>
             )}
           </div>
 
-          <CustomMapControl
-            controlPosition={ControlPosition.TOP}
-            onPlaceSelect={setSelectedPlace}
-          />
+          <SearchForm setMarkers={setMarkers} map={map} />
+        </div>
+        <div className="flex flex-col w-[40%] h-[60vh]  bg-slate-50 p-5 shadow-2xl">
+          <div className="flex gap-2">
+            <input
+              type="checkbox"
+              id="viewAll"
+              name="viewAll"
+              checked={viewAll}
+              onChange={() => setViewAll(!viewAll)}
+            />
+            <span>View All</span>
+          </div>
 
-          <SearchForm setMarkers={setMarkers} />
+          <div className="flex flex-col gap-6 overflow-auto ">
+            {cardsToPlay.map((marker) => (
+              <CardKamp key={marker.key} campData={marker} map={map} />
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -116,6 +156,13 @@ type Props = {
 const Markers = ({ points, isOpen, onOpen, onClose }: Props) => {
   const map = useMap();
 
+  const goToPin = (point: Kamp) => {
+    if (map) {
+      map.panTo({ lat: point.lat, lng: point.lng });
+      map.setZoom(15);
+    }
+  };
+
   return (
     <>
       {points.map((point) => (
@@ -123,6 +170,7 @@ const Markers = ({ points, isOpen, onOpen, onClose }: Props) => {
           key={point.key}
           onMouseEnter={() => onOpen(point.key)}
           onMouseOut={onClose}
+          onClick={() => goToPin(point)}
         >
           {isOpen(point.key) && (
             <InfoWindow

@@ -4,9 +4,10 @@ import { Autocomplete } from "./Autocomplete";
 
 interface Props {
   setMarkers: React.Dispatch<React.SetStateAction<Kamp[]>>;
+  map: google.maps.Map | null;
 }
 
-const SearchForm: React.FC<Props> = ({ setMarkers }) => {
+const SearchForm: React.FC<Props> = ({ setMarkers, map }) => {
   const [dataForm, setDataForm] = useState<Kamp>({
     desc: "",
     name: "",
@@ -26,6 +27,14 @@ const SearchForm: React.FC<Props> = ({ setMarkers }) => {
 
   const handlePlaceSelect = (place: google.maps.places.PlaceResult | null) => {
     if (!place) return;
+
+    console.log("address", place);
+    // add the following code snippet
+    map?.panTo({
+      lat: place.geometry?.location?.lat() || 0,
+      lng: place.geometry?.location?.lng() || 0,
+    });
+    map?.setZoom(15);
 
     setDataForm((prev) => ({
       ...prev,
