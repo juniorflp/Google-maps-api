@@ -1,4 +1,6 @@
 "use client";
+import type { Marker } from "@googlemaps/markerclusterer";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import {
   AdvancedMarker,
   InfoWindow,
@@ -6,7 +8,7 @@ import {
   useApiIsLoaded,
   useMap,
 } from "@vis.gl/react-google-maps";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import kamps, { Kamp } from "../utils/data-points";
 import CardKamp from "./CardKamp";
 import GetMap from "./GetMap";
@@ -73,7 +75,7 @@ const MapComponent: React.FC = () => {
         google.maps.event.clearListeners(map, "bounds_changed");
       };
     }
-  }, [position, map]);
+  }, [position]);
 
   useEffect(() => {
     // Save kamps to local storage
@@ -95,7 +97,7 @@ const MapComponent: React.FC = () => {
       <p className="mx-auto text-white text-2xl my-10 ">Kamps for Kids POC</p>
       <div className="flex ">
         <div className="w-[60%] relative flex flex-col justify-center items-center gap-10">
-          <div className="w-full h-[60vh] mx-auto  ">
+          <div className="w-full h-[83vh] mx-auto  ">
             {position && (
               <Map
                 id="my-map"
@@ -123,7 +125,7 @@ const MapComponent: React.FC = () => {
 
           <SearchForm setMarkers={setMarkers} map={map} />
         </div>
-        <div className="flex flex-col w-[40%] h-[60vh]  bg-slate-50 p-5 shadow-2xl">
+        <div className="flex flex-col w-[40%] h-[83vh]  bg-slate-50 p-5 shadow-2xl">
           <div className="flex gap-2">
             <input
               type="checkbox"
@@ -155,12 +157,43 @@ type Props = {
 
 const Markers = ({ points, isOpen, onOpen, onClose }: Props) => {
   const map = useMap();
+  const [markers, setMarkers] = useState<{ [key: string]: Marker }>({});
+  const clusterer = useRef<MarkerClusterer | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+    if (!clusterer.current) {
+      clusterer.current = new MarkerClusterer({ map });
+    }
+  }, [map]);
 
   const goToPin = (point: Kamp) => {
     if (map) {
       map.panTo({ lat: point.lat, lng: point.lng });
       map.setZoom(15);
     }
+  };
+
+  useEffect(() => {
+    // clearMarkers -  commented because it was making the marks flicker
+
+    // clusterer.current?.clearMarkers();
+    clusterer.current?.addMarkers(Object.values(markers));
+  }, [markers]);
+
+  const setMarkerRef = (marker: Marker | null, key: string) => {
+    if (marker && markers[key]) return;
+    if (!marker && !markers[key]) return;
+
+    setMarkers((prev) => {
+      if (marker) {
+        return { ...prev, [key]: marker };
+      } else {
+        const newMarkers = { ...prev };
+        delete newMarkers[key];
+        return newMarkers;
+      }
+    });
   };
 
   return (
@@ -185,7 +218,11 @@ const Markers = ({ points, isOpen, onOpen, onClose }: Props) => {
               </div>
             </InfoWindow>
           )}
-          <AdvancedMarker position={point} onClick={() => onOpen(point.key)}>
+          <AdvancedMarker
+            position={point}
+            onClick={() => onOpen(point.key)}
+            ref={(marker) => setMarkerRef(marker, point.key)}
+          >
             <p className="text-4xl">🏕️</p>
           </AdvancedMarker>
         </div>
